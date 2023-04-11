@@ -59,17 +59,18 @@ async def add_transaction(request):
     uid = data.get("uid")
     timestamp = datetime.fromisoformat(data.get("timestamp"))
 
-    transaction = await Transaction.query.where(
-        Transaction.uid == uid
-    ).gino.first()
-    if not transaction:
-        try:
-            transaction = await user.create_transaction(
-                txn_type, amount, uid, timestamp)
-        except InsufficientBalanceError:
-            raise web.HTTPPaymentRequired(text="Insufficient balance")
-        except InvalidTransactionTypeError:
-            raise web.HTTPBadRequest(text="Invalid transaction type")
+    try:
+        transaction = await user.create_transaction(
+            txn_type, amount, uid, timestamp)
+    except InsufficientBalanceError:
+        raise web.HTTPPaymentRequired(text="Insufficient balance")
+    except InvalidTransactionTypeError:
+        raise web.HTTPBadRequest(text="Invalid transaction type")
+    except UniqueViolationError:
+        # Transaction already exists:
+        transaction = await Transaction.query.where(
+            Transaction.uid == uid
+        ).gino.first()
 
     return web.json_response({"transaction_id": transaction.id})
 

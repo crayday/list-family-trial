@@ -47,17 +47,20 @@ class User(db.Model):
         self, txn_type: str, amount: Decimal, uid: str, timestamp: datetime
     ) -> Transaction:
         async with db.transaction():
+            # Lock the user's row
+            user = await User.query.where(User.id == self.id).with_for_update().gino.first()
+
             if txn_type == 'DEPOSIT':
-                self.balance += amount
+                user.balance += amount
             elif txn_type == 'WITHDRAW':
-                if amount > self.balance:
+                if amount > user.balance:
                     raise InsufficientBalanceError("Insufficient balance")
-                self.balance -= amount
+                user.balance -= amount
             else:
                 raise InvalidTransactionTypeError("Invalid transaction type")
 
-            await self.update(
-                balance=self.balance
+            await user.update(
+                balance=user.balance
             ).apply()
 
             transaction = await Transaction.create(
