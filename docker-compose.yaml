@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    container_name: web
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    environment:
+      - LFT_HOST=0.0.0.0
+      - LFT_PORT=8000
+      - LFT_DATABASE_URI=postgresql://postgres:123456@db:5433/list_family_trial
+    networks:
+      - lft
+
+  db:
+    image: "postgres:latest"
+    container_name: db
+    environment:
+      - POSTGRES_DB=list_family_trial
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+    expose:
+      - "5433"
+    ports:
+      - "5433:5433"
+    command: -p 5433
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - lft
+
+networks:
+  lft:
+
+volumes:
+  postgres_data:
